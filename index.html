@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Endless Runner</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101b2b;color:#fff;font-family:Arial,Helvetica,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:14px}
+.shell{width:min(100%,960px)}header{display:flex;justify-content:space-between;align-items:center;margin:0 4px 10px;gap:12px}h1{font-size:clamp(19px,4vw,30px);margin:0;letter-spacing:1px}.sub{color:#aebfd4;font-size:13px;text-align:right}
+.frame{position:relative;border:2px solid #36516b;border-radius:12px;overflow:hidden;box-shadow:0 16px 50px #0008;background:#80d8ff}canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;touch-action:manipulation}
+.hud{position:absolute;top:14px;left:16px;right:16px;display:flex;justify-content:space-between;pointer-events:none;font-size:clamp(13px,2.4vw,22px);font-weight:bold;text-shadow:1px 2px 3px #234}
+.hud span{background:#fff9;color:#122c3b;padding:7px 10px;border-radius:8px}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#07111b55;padding:15px}.panel{text-align:center;background:#f8fbfff2;color:#172c40;border:2px solid #fff;border-radius:16px;padding:24px 30px;width:min(90%,450px);box-shadow:0 10px 30px #0004}.panel h2{font-size:clamp(24px,5vw,40px);margin:0 0 10px}.panel p{white-space:pre-line;line-height:1.5;margin:0 0 18px;color:#40556a}
+button{border:0;border-radius:9px;padding:13px 23px;background:#2764d8;color:white;font-weight:bold;font-size:17px;cursor:pointer;box-shadow:0 4px 0 #173f91}button:active{transform:translateY(2px);box-shadow:0 2px 0 #173f91}.buttons{display:flex;gap:10px;justify-content:center;margin-top:12px}.buttons button{flex:1;max-width:230px}.help{text-align:center;color:#9fb1c7;font-size:12px;margin-top:10px}
+@media(max-width:500px){body{padding:7px}.frame{border-radius:8px}.panel{padding:18px}.hud{top:8px;left:8px;right:8px}.hud span{padding:5px 7px}.buttons button{font-size:15px;padding:12px 10px}}
+</style></head>
+<body><main class="shell">
+<header><h1>ENDLESS RUNNER</h1><div class="sub">SPACE / ↑ / TAP TO JUMP</div></header>
+<div class="frame"><canvas id="c" width="960" height="540"></canvas>
+<div class="hud"><span id="score">Score: 0</span><span id="speed">Speed: 380 | Level: 0</span></div>
+<div class="overlay" id="overlay"><div class="panel"><h2 id="title">ENDLESS RUNNER</h2><p id="message">Press Start or Space to play</p><button id="start">Start Game</button></div></div></div>
+<div class="buttons"><button id="jump">⬆ Jump</button><button id="restart">↻ Restart</button></div>
+<div class="help">Jump over the face obstacles · Score +2 per obstacle · Speed increases every 10 obstacles</div>
+</main>
+<script>
+(()=> {
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d'),$=id=>document.getElementById(id);
+const W=960,H=540,GROUND=440,PLAYER_X=140,PLAYER_W=58,PLAYER_H=78,BASE_SPEED=380;
+const images={player:new Image(),obstacle:new Image()};
+images.player.src='assets/player_face.jpeg'; images.obstacle.src='assets/obstacle_face.jpeg';
+const audio={bg:new Audio('assets/background.mp3'),start:new Audio('assets/game_start.mp3'),over:new Audio('assets/game_over.mp3'),jump:new Audio('assets/jump_sound.mp3')};
+audio.bg.loop=true;audio.bg.volume=.35;audio.over.volume=.75;audio.start.volume=.75;audio.jump.volume=.75;
+let playerY=GROUND-PLAYER_H,vy=0,gravity=1500,jumpForce=-600,speed=BASE_SPEED,score=0,passed=0,spawnTimer=0,nextSpawn=1.35,obstacles=[],started=false,gameOver=false,last=0,raf=0;
+function play(a){try{a.currentTime=0;let p=a.play();if(p)p.catch(()=>{})}catch(e){}}
+function stop(a){a.pause();try{a.currentTime=0}catch(e){}}
+function reset(){playerY=GROUND-PLAYER_H;vy=0;speed=BASE_SPEED;score=0;passed=0;spawnTimer=0;nextSpawn=1.35;obstacles=[];gameOver=false;started=true;$('overlay').style.display='none';stop(audio.over);stop(audio.bg);play(audio.start);play(audio.bg);updateHud();last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop)}
+function begin(){if(!started||gameOver)reset()}
+function jump(){if(!started||gameOver){begin();return}if(playerY>=GROUND-PLAYER_H-1){vy=jumpForce;play(audio.jump)}}
+function end(){gameOver=true;started=false;stop(audio.bg);play(audio.over);$('title').textContent='GAME OVER';$('message').textContent='Score: '+score+'\\nPress Play Again to run again';$('start').textContent='Play Again';$('overlay').style.display='flex'}
+function updateHud(){$('score').textContent='Score: '+score;$('speed').textContent='Speed: '+Math.round(speed)+' | Level: '+Math.floor(passed/10)}
+function spawn(){let size={w:58,h:70};obstacles.push({x:W+20,y:GROUND-size.h,w:size.w,h:size.h,scored:false});nextSpawn=Math.max(.65,(1.15+Math.random()*.6)*(BASE_SPEED/speed))}
+function draw(){
+ctx.clearRect(0,0,W,H);ctx.fillStyle='#80d8ff';ctx.fillRect(0,0,W,H);
+// same simple blue sky and white clouds as the Godot version
+ctx.fillStyle='#fff';[[220,100,25],[250,90,34],[285,102,23],[650,120,24],[680,110,32],[713,122,22]].forEach(([x,y,r])=>{ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()});
+ctx.fillStyle='#55b957';ctx.fillRect(0,GROUND,W,H-GROUND);ctx.strokeStyle='#2f8c3a';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,GROUND);ctx.lineTo(W,GROUND);ctx.stroke();
+if(images.player.complete&&images.player.naturalWidth)ctx.drawImage(images.player,PLAYER_X,playerY,PLAYER_W,PLAYER_H);else{ctx.fillStyle='#2764d8';ctx.fillRect(PLAYER_X,playerY,PLAYER_W,PLAYER_H)}
+obstacles.forEach(o=>{if(images.obstacle.complete&&images.obstacle.naturalWidth)ctx.drawImage(images.obstacle,o.x,o.y,o.w,o.h);else{ctx.fillStyle='#e94b3c';ctx.fillRect(o.x,o.y,o.w,o.h)}});
+}
+function loop(now){if(!started||gameOver)return;let dt=Math.min((now-last)/1000||.016,.035);last=now;vy+=gravity*dt;playerY+=vy*dt;if(playerY>GROUND-PLAYER_H){playerY=GROUND-PLAYER_H;vy=0}
+spawnTimer+=dt;if(spawnTimer>=nextSpawn){spawn();spawnTimer=0}
+for(let i=obstacles.length-1;i>=0;i--){let o=obstacles[i];o.x-=speed*dt;if(!o.scored&&o.x+o.w<PLAYER_X){o.scored=true;passed++;score+=2;if(passed%10===0)speed*=1.1}if(o.x+o.w<0)obstacles.splice(i,1)}
+const p={x:PLAYER_X+6,y:playerY+6,w:PLAYER_W-12,h:PLAYER_H-8};
+for(const o of obstacles){if(p.x<o.x+o.w-5&&p.x+p.w>o.x+5&&p.y<o.y+o.h-5&&p.y+p.h>o.y+5){end();break}}
+updateHud();draw();if(started)raf=requestAnimationFrame(loop)}
+$('start').addEventListener('click',begin);$('jump').addEventListener('click',jump);$('restart').addEventListener('click',reset);
+canvas.addEventListener('pointerdown',()=>{if(started)jump()});
+window.addEventListener('keydown',e=>{if(['Space','ArrowUp'].includes(e.code)){e.preventDefault();if(!started||gameOver)begin();else jump()}if(e.code==='KeyR')reset()});
+draw();
+})();
+</script></body></html>
