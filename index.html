@@ -26,8 +26,8 @@ button{border:0;border-radius:9px;padding:13px 23px;background:#2764d8;color:whi
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d'),$=id=>document.getElementById(id);
 const W=960,H=540,GROUND=440,PLAYER_X=140,PLAYER_W=58,PLAYER_H=78,BASE_SPEED=380;
 const images={player:new Image(),obstacle:new Image()};
-images.player.src='assets/player_face.jpeg'; images.obstacle.src='assets/obstacle_face.jpeg';
-const audio={bg:new Audio('assets/background.mp3'),start:new Audio('assets/game_start.mp3'),over:new Audio('assets/game_over.mp3'),jump:new Audio('assets/jump_sound.mp3')};
+images.player.src='player_face.jpeg'; images.obstacle.src='obstacle_face.jpeg';
+const audio={bg:new Audio('background.mp3'),start:new Audio('game_start.mp3'),over:new Audio('game_over.mp3'),jump:new Audio('jump_sound.mp3')};
 audio.bg.loop=true;audio.bg.volume=.35;audio.over.volume=.75;audio.start.volume=.75;audio.jump.volume=.75;
 let playerY=GROUND-PLAYER_H,vy=0,gravity=1500,jumpForce=-600,speed=BASE_SPEED,score=0,passed=0,spawnTimer=0,nextSpawn=1.35,obstacles=[],started=false,gameOver=false,last=0,raf=0;
 function play(a){try{a.currentTime=0;let p=a.play();if(p)p.catch(()=>{})}catch(e){}}
